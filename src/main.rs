@@ -13,7 +13,7 @@ use std::process::exit;
 fn main() {
     let args: Vec<String> = env::args().collect();
 
-    if args.len() < 3 {
+    if args.len() < 2 {
         eprintln!("Not enough arguments");
         exit(1);
     }
@@ -26,7 +26,7 @@ fn display_help() {
 }
 
 fn db_connect() -> Connection {
-    let conn = match Connection::open_in_memory() {
+    let conn = match Connection::open("my_database.db") {
         Ok(connection) => connection,
         Err(e) => {
             eprintln!("Error opening in database: {}", e);
@@ -56,9 +56,26 @@ fn display_todo_list() {
         }
     };
 
-    //     let todo_iter() = match stmt.query_map([], |row|{
-    //         Ok()
-    //     });
+    let todo_iter = match stmt.query_map([], |row| {
+        Ok((row.get::<_, i32>(0)?, row.get::<_, String>(1)?))
+    }) {
+        Ok(iter) => iter,
+        Err(e) => {
+            eprintln!("Error querying todos: {}", e);
+            exit(1);
+        }
+    };
+
+    // Print out the todos
+    println!("Todo items:");
+    let mut counter: u32 = 0;
+    for todo in todo_iter {
+        counter += 1;
+        match todo {
+            Ok((_, name)) => println!("{}: {}", counter, name),
+            Err(e) => eprintln!("Error reading todo: {}", e),
+        }
+    }
 }
 
 fn add_todo(name: &str) {
@@ -80,7 +97,20 @@ fn add_todo(name: &str) {
     }
 }
 
-// fn remove_todo(){}
+fn remove_todo(id: &str) {
+    let conn = db_connect();
+    let sql = "DELETE FROM todo WHERE id = ?1";
+    match conn.execute(sql, &[id]) {
+        Ok(rows_deleted) => {
+            if rows_deleted == 0 {
+                println!("No todo found");
+            } else {
+                println!("Successfully deleted {} row(s).", rows_deleted);
+            }
+        }
+        Err(e) => eprintln!("Error deleting row: {}", e),
+    };
+}
 
 fn parse_config(args: &[String]) {
     let mut iter = args.iter().skip(1);
@@ -100,9 +130,13 @@ fn parse_config(args: &[String]) {
                 println!("done argument");
                 if let Some(arg) = iter.next() {
                     println!("id of the todo: {}", arg);
+                    remove_todo(&arg);
                 } else {
                     eprintln!("id of the todo argument needed!");
                 }
+            }
+            "show" => {
+                display_todo_list();
             }
             _ => {
                 display_help();

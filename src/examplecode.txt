@@ -1,0 +1,81 @@
+use rusqlite::{Connection, Result};
+use std::process::exit;
+
+fn db_connect() -> Connection {
+    match Connection::open_in_memory() {
+        Ok(connection) => connection,
+        Err(e) => {
+            eprintln!("Error opening database: {}", e);
+            exit(1);
+        }
+    }
+}
+
+fn create_table(conn: &Connection) {
+    match conn.execute(
+        "CREATE TABLE IF NOT EXISTS todo (
+            id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL
+        );",
+        (),
+    ) {
+        Ok(_) => {},
+        Err(e) => {
+            eprintln!("Error creating table: {}", e);
+            exit(1);
+        }
+    };
+}
+
+fn add_todo_item(conn: &Connection, name: &str) {
+    let result = conn.execute(
+        "INSERT INTO todo (name) VALUES (?1)",
+        &[name],
+    );
+
+    match result {
+        Ok(_) => println!("Todo item added: {}", name),
+        Err(e) => {
+            eprintln!("Error adding todo item: {}", e);
+            exit(1);
+        }
+    }
+}
+
+fn display_todos(conn: &Connection) {
+    let mut stmt = match conn.prepare("SELECT id, name FROM todo") {
+        Ok(stmt) => stmt,
+        Err(e) => {
+            eprintln!("Error preparing statement: {}", e);
+            exit(1);
+        }
+    };
+
+    let todo_iter = match stmt.query_map([], |row| {
+        Ok((row.get::<_, i32>(0)?, row.get::<_, String>(1)?))
+    }) {
+        Ok(iter) => iter,
+        Err(e) => {
+            eprintln!("Error querying todos: {}", e);
+            exit(1);
+        }
+    };
+
+    // Print out the todos
+    println!("Todo items:");
+    for todo in todo_iter {
+        match todo {
+            Ok((id, name)) => println!("{}: {}", id, name),
+            Err(e) => eprintln!("Error reading todo: {}", e),
+        }
+    }
+}
+
+fn main() {
+    let conn = db_connect(); // Connect to the database
+    create_table(&conn); // Create the table
+    add_todo_item(&conn, "Learn Rust"); // Insert a new todo item
+    add_todo_item(&conn, "Write a blog post"); // Insert another todo item
+    display_todos(&conn); // Display the todo items
+}
+
+// install libsqlite3-dev
