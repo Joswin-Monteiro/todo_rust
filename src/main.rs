@@ -3,13 +3,7 @@ use std::collections::HashMap;
 use std::env;
 use std::process::exit;
 
-// struct Config {
-//     add: bool,
-//     todo_name: String,
-//
-//     done: bool,
-//     todo_id: u8,
-// }
+// TODO fix add argument not to save the todo unless the argument is specified in quotes
 
 fn main() {
     let args: Vec<String> = env::args().collect();
