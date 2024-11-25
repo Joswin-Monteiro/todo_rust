@@ -97,7 +97,6 @@ fn remove_todo(row: &str) {
 
     let mut corresponding_id = HashMap::new();
 
-    //let sql = "SELECT id FROM todo;";
     let mut stmt = match conn.prepare("SELECT id FROM todo") {
         Ok(stmt) => stmt,
         Err(e) => {
@@ -114,7 +113,6 @@ fn remove_todo(row: &str) {
         }
     };
 
-    //println!("Todo items:");
     let mut counter: u32 = 0;
     for todo in todo_iter {
         counter += 1;
@@ -147,14 +145,12 @@ fn parse_config(args: &[String]) {
             "add" => {
                 println!("add argument");
                 if let Some(arg) = iter.next() {
-                    //println!("name of the todo: {}", arg);
                     add_todo(&arg);
                 } else {
                     eprintln!("name of the add argument needed!");
                 }
             }
             "done" => {
-                println!("done argument");
                 if let Some(arg) = iter.next() {
                     println!("id of the todo: {}", arg);
                     remove_todo(&arg);
