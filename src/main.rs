@@ -1,4 +1,5 @@
 use rusqlite::Connection;
+use std::collections::HashMap;
 use std::env;
 use std::process::exit;
 
@@ -97,9 +98,41 @@ fn add_todo(name: &str) {
     }
 }
 
-fn remove_todo(id: &str) {
+fn remove_todo(row: &str) {
     let conn = db_connect();
-    let sql = "DELETE FROM todo WHERE id = ?1";
+
+    let mut corresponding_id = HashMap::new();
+
+    //let sql = "SELECT id FROM todo;";
+    let mut stmt = match conn.prepare("SELECT id FROM todo") {
+        Ok(stmt) => stmt,
+        Err(e) => {
+            eprintln!("Error preparing statement: {}", e);
+            exit(1);
+        }
+    };
+
+    let todo_iter = match stmt.query_map([], |row| Ok(row.get::<_, i32>(0)?)) {
+        Ok(iter) => iter,
+        Err(e) => {
+            eprintln!("Error querying todos: {}", e);
+            exit(1);
+        }
+    };
+
+    //println!("Todo items:");
+    let mut counter: u32 = 0;
+    for todo in todo_iter {
+        counter += 1;
+        let id = todo.unwrap();
+        corresponding_id.insert(counter, id);
+    }
+
+    // Delete the row
+    let sql = "DELETE FROM todo WHERE id = ?;";
+    let id = corresponding_id
+        .get(&row.parse::<u32>().expect("Invalid ID format"))
+        .expect(&format!("Id not found :("));
     match conn.execute(sql, &[id]) {
         Ok(rows_deleted) => {
             if rows_deleted == 0 {
