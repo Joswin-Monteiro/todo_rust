@@ -17,7 +17,18 @@ fn main() {
 }
 
 fn display_help() {
-    println!("Usage: todo [options...]");
+    let help_usage = r#"
+Usage: todo [command] [options]
+
+Commands:
+  add   Add a new task to your todo list
+  done  Mark a task as completed
+
+Options:
+  -h, --help                Display this help message
+"#;
+
+    println!("{}", help_usage);
 }
 
 fn db_connect() -> Connection {
@@ -160,6 +171,10 @@ fn parse_config(args: &[String]) {
             }
             "show" => {
                 display_todo_list();
+            }
+            "-h" | "--help" => {
+                display_help();
+                exit(1);
             }
             _ => {
                 display_help();
